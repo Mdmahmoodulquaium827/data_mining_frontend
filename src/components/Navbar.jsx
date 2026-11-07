@@ -25,7 +25,7 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="w-full bg-[#fafafa] border-b border-gray-100">
+    <nav className="sticky top-0 z-50 w-full bg-[#fafafa] border-b border-gray-100">
       <div className="max-w-[1440px] mx-auto px-5 md:px-10 lg:px-16">
 
         {/* Main Navbar */}

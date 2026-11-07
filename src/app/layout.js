@@ -1,7 +1,7 @@
 import "./globals.css";
 import StoreProvider from "./StoreProvider";
 import Navbar from "@/components/Navbar";
-
+import Footer from "@/components/Footer";
 export const metadata = {
   title: "DATA MINING",
   description: "Online shopping platform",
@@ -20,7 +20,7 @@ export default function RootLayout({ children }) {
           <Navbar />
 
           {children}
-
+          <Footer />
         </StoreProvider>
       </body>
     </html>
