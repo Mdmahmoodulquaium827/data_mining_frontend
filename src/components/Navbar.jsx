@@ -19,8 +19,8 @@ export default function Navbar() {
 
   const navLinks = [
     { name: "Products", href: "/products" },
-    { name: "Investor Relations", href: "/investor-relations" },
-    { name: "Market place", href: "/market-place" },
+    { name: "Prediction", href: "/prediction" },
+    { name: "Data Overview", href: "/data-cleaning" },
     { name: "SPV", href: "/spv" },
   ];
 
