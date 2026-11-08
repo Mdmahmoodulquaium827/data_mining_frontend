@@ -50,7 +50,7 @@ export default async function ProductDetails({ id }) {
         {/* Product Information */}
         <div className="py-3">
 
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-3xl font-bold text-black">
             {product.title}
           </h1>
 
@@ -59,28 +59,28 @@ export default async function ProductDetails({ id }) {
               ⭐ {product.rating}
             </span>
 
-            <span className="text-gray-500 text-sm">
+            <span className="text-black text-sm">
               {product.reviews?.length || 0} Reviews
             </span>
           </div>
 
-          <h2 className="text-2xl font-bold mt-5">
+          <h2 className="text-2xl font-bold mt-5 text-black">
             ${product.price}
           </h2>
 
           {/* Description */}
           <div className="border rounded-xl p-4 mt-6">
-            <h3 className="font-semibold mb-2">
+            <h3 className="font-semibold mb-2 text-black">
               Description
             </h3>
 
-            <p className="text-gray-600 text-sm leading-6">
+            <p className="text-black text-sm leading-6">
               {product.description}
             </p>
           </div>
 
           {/* Product Details */}
-          <div className="mt-6 space-y-3 text-sm">
+          <div className="mt-6 space-y-3 text-sm text-black">
 
             <p>
               <strong>Category:</strong>{" "}
@@ -114,7 +114,7 @@ export default async function ProductDetails({ id }) {
 
             <button
               disabled={product.stock === 0}
-              className="flex-1 border border-black rounded-full py-3 font-medium hover:bg-gray-100 disabled:opacity-50"
+              className="flex-1 border border-black rounded-full py-3 font-medium hover:bg-black hover:text-white disabled:opacity-50 text-black"
             >
               Add to Cart
             </button>
@@ -134,11 +134,11 @@ export default async function ProductDetails({ id }) {
 
       {/* Reviews */}
       <section className="mt-14">
-        <h2 className="text-2xl font-bold mb-6">
+        <h2 className="text-2xl font-bold mb-6 text-black">
           Ratings & Reviews
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 ">
 
           {product.reviews?.length > 0 ? (
             product.reviews.map((review, index) => (
@@ -146,7 +146,7 @@ export default async function ProductDetails({ id }) {
                 key={index}
                 className="border rounded-xl p-5"
               >
-                <h3 className="font-semibold">
+                <h3 className="font-semibold text-black">
                   {review.reviewerName}
                 </h3>
 
@@ -154,13 +154,13 @@ export default async function ProductDetails({ id }) {
                   ⭐ {review.rating}/5
                 </p>
 
-                <p className="text-gray-600 text-sm mt-3">
+                <p className="text-gray-600 text-sm mt-3 text-black">
                   {review.comment}
                 </p>
               </div>
             ))
           ) : (
-            <p className="text-gray-500">
+            <p className="text-gray-800">
               No reviews available.
             </p>
           )}

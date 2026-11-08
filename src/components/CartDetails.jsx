@@ -18,7 +18,7 @@ export default function CartDetails({
           Your Cart is Empty
         </h2>
 
-        <p className="text-gray-500 mt-2">
+        <p className="text-black mt-2">
           You haven't added any products yet.
         </p>
 

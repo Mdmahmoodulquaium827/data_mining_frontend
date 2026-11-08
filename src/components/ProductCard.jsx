@@ -16,8 +16,8 @@ export default function ProductCard({ product }) {
       </div>
 
       {/* Product Information */}
-      <div className="mt-3">
-        <h3 className="font-semibold text-sm truncate">
+      <div className="mt-3 ">
+        <h3 className="font-semibold text-sm truncate text-black ">
           {product.title}
         </h3>
 
