@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -5,23 +6,22 @@ import { useDispatch, useSelector } from "react-redux";
 
 import {
   toggleMobileMenu,
-  toggleCompanyDropdown,
   closeNavbar,
 } from "@/redux/navbarSlice";
 
 export default function Navbar() {
   const dispatch = useDispatch();
 
-  const {
-    isMobileMenuOpen,
-    isCompanyDropdownOpen,
-  } = useSelector((state) => state.navbar);
+  const isMobileMenuOpen = useSelector(
+    (state) => state.navbar.isMobileMenuOpen
+  );
 
   const navLinks = [
     { name: "Products", href: "/products" },
     { name: "Prediction", href: "/prediction" },
     { name: "Data Overview", href: "/data-cleaning" },
     { name: "SPV", href: "/spv" },
+    { name: "About", href: "/about" },
   ];
 
   return (
@@ -37,7 +37,7 @@ export default function Navbar() {
             onClick={() => dispatch(closeNavbar())}
             className="flex items-center shrink-0"
           >
-            <span className="text-[29px] font-extrabold tracking-tight text-black">
+            <span className="text-[29px] font-bold tracking-tight text-black">
               DATA
             </span>
 
@@ -48,8 +48,7 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-7 ml-8">
-
-            {navLinks.slice(0, 2).map((link) => (
+            {navLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
@@ -58,76 +57,14 @@ export default function Navbar() {
                 {link.name}
               </Link>
             ))}
-
-            {/* Company Dropdown */}
-            <div className="relative">
-
-              <button
-                onClick={() =>
-                  dispatch(toggleCompanyDropdown())
-                }
-                className="flex items-center gap-1 text-[13px] font-medium text-gray-900 hover:text-gray-500"
-                aria-expanded={isCompanyDropdownOpen}
-              >
-                Company
-
-                <svg
-                  className={`w-3 h-3 transition-transform ${
-                    isCompanyDropdownOpen ? "rotate-180" : ""
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m6 9 6 6 6-6"
-                  />
-                </svg>
-              </button>
-
-              {isCompanyDropdownOpen && (
-                <div className="absolute top-9 left-0 w-48 bg-white shadow-lg border border-gray-100 rounded-lg py-2 z-50">
-
-                  {[
-                    ["About Us", "/about"],
-                    ["Our Team", "/team"],
-                    ["Contact", "/contact"],
-                  ].map(([name, href]) => (
-                    <Link
-                      key={name}
-                      href={href}
-                      onClick={() => dispatch(closeNavbar())}
-                      className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      {name}
-                    </Link>
-                  ))}
-
-                </div>
-              )}
-            </div>
-
-            {navLinks.slice(2).map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                className="text-[13px] font-medium text-gray-900 hover:text-gray-500 transition-colors"
-              >
-                {link.name}
-              </Link>
-            ))}
-
           </div>
 
-          {/* Get Started Button - Desktop */}
+          {/* New Mining Button - Desktop */}
           <Link
-            href="/get-started"
+            href="/"
             className="hidden lg:inline-flex bg-black text-white text-[13px] font-semibold px-5 py-3 rounded-full hover:bg-gray-800 transition-colors"
           >
-            Get started
+            New Mining
           </Link>
 
           {/* Mobile / Tablet Menu Button */}
@@ -172,7 +109,7 @@ export default function Navbar() {
         {isMobileMenuOpen && (
           <div className="lg:hidden border-t border-gray-200 py-5 space-y-1">
 
-            {navLinks.slice(0, 2).map((link) => (
+            {navLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
@@ -183,75 +120,14 @@ export default function Navbar() {
               </Link>
             ))}
 
-            {/* Mobile Company Dropdown */}
-            <div>
-              <button
-                onClick={() =>
-                  dispatch(toggleCompanyDropdown())
-                }
-                className="w-full flex items-center justify-between py-3 text-sm font-medium text-gray-900"
-                aria-expanded={isCompanyDropdownOpen}
-              >
-                Company
-
-                <svg
-                  className={`w-4 h-4 transition-transform ${
-                    isCompanyDropdownOpen ? "rotate-180" : ""
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m6 9 6 6 6-6"
-                  />
-                </svg>
-              </button>
-
-              {isCompanyDropdownOpen && (
-                <div className="pl-4 border-l-2 border-gray-200 ml-1">
-
-                  {[
-                    ["About Us", "/about"],
-                    ["Our Team", "/team"],
-                    ["Contact", "/contact"],
-                  ].map(([name, href]) => (
-                    <Link
-                      key={name}
-                      href={href}
-                      onClick={() => dispatch(closeNavbar())}
-                      className="block py-2.5 text-sm text-gray-600 hover:text-black"
-                    >
-                      {name}
-                    </Link>
-                  ))}
-
-                </div>
-              )}
-            </div>
-
-            {navLinks.slice(2).map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                onClick={() => dispatch(closeNavbar())}
-                className="block py-3 text-sm font-medium text-gray-900 hover:text-gray-500"
-              >
-                {link.name}
-              </Link>
-            ))}
-
-            {/* Get Started Button */}
+            {/* New Mining Button - Mobile */}
             <div className="pt-4">
               <Link
-                href="/get-started"
+                href="/"
                 onClick={() => dispatch(closeNavbar())}
                 className="inline-flex bg-black text-white text-sm font-semibold px-6 py-3 rounded-full hover:bg-gray-800 transition-colors"
               >
-                Get started
+                New Mining
               </Link>
             </div>
 

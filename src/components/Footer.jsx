@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="flex justify-center items-center">
           <div className="flex items-center">
 
-            <span className="text-4xl font-extrabold tracking-tight text-black">
+            <span className="text-4xl font-bold tracking-tight text-black">
               DATA
             </span>
 
