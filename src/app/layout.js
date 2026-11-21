@@ -17,10 +17,10 @@ export default function RootLayout({ children }) {
     <html lang="en" className="bg-white">
       <body className="bg-white text-slate-900 min-h-screen">
         <StoreProvider>
-          <Navbar />
+          {/*<Navbar />*/}
 
           {children}
-          <Footer />
+          {/*<Footer />} */}
         </StoreProvider>
       </body>
     </html>
