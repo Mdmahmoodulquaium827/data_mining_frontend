@@ -327,7 +327,7 @@ export default function DataCleaningPage() {
 
               <div className="w-full bg-gray-100 rounded-full h-3">
                 <div
-                  className="bg-slate-900 h-3 rounded-full transition-all duration-700"
+                  className="bg-blue-600 h-3 rounded-full transition-all duration-700"
                   style={{ width: `${Math.max(5, summary.completeness)}%` }}
                 />
               </div>
@@ -365,7 +365,7 @@ export default function DataCleaningPage() {
                     <Bar
                       dataKey="missing"
                       name="Missing Count"
-                      fill="#334155"
+                      fill="#E59A38"
                       radius={[5, 5, 0, 0]}
                       maxBarSize={50}
                     />
@@ -569,7 +569,9 @@ export default function DataCleaningPage() {
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
                               <div
-                                className="h-1.5 rounded-full bg-slate-900"
+                                className={`h-1.5 rounded-full ${
+                                  col.missing > 0 ? "bg-amber-500" : "bg-emerald-500"
+                                }`}
                                 style={{ width: `${Math.max(5, col.missingPercent || 0)}%` }}
                               />
                             </div>
