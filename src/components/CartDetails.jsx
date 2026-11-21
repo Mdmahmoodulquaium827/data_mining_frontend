@@ -19,7 +19,7 @@ export default function CartDetails({
         </h2>
 
         <p className="text-black mt-2">
-          You haven't added any products yet.
+          You haven&apos;t added any products yet.
         </p>
 
       </div>

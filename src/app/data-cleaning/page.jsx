@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   BarChart,
@@ -64,6 +64,8 @@ export default function DataCleaningPage() {
     fetchData();
   }, []);
 
+  const [featureFilter, setFeatureFilter] = useState("all");
+
   const cleaning = analytics?.cleaning || {};
   const summary = cleaning.summary || {
     totalRecords: products.length || 0,
@@ -81,16 +83,74 @@ export default function DataCleaningPage() {
         { column: "Rating", missing: 0 },
       ];
 
-  const columns = cleaning.columns && cleaning.columns.length > 0
-    ? cleaning.columns
-    : [
-        { name: "name", type: "String", missing: 0 },
-        { name: "price", type: "Float", missing: 0 },
-        { name: "brand", type: "String", missing: 0 },
-        { name: "availability", type: "String", missing: 0 },
-        { name: "is_smart", type: "Boolean", missing: 0 },
-        { name: "is_inverter", type: "Boolean", missing: 0 },
-      ];
+  const enrichedColumns = useMemo(() => {
+    const rawCols = cleaning.columns && cleaning.columns.length > 0
+      ? cleaning.columns
+      : [
+          { name: "name", type: "String", missing: 0 },
+          { name: "price", type: "Float", missing: 0 },
+          { name: "brand", type: "String", missing: 0 },
+          { name: "availability", type: "String", missing: 0 },
+          { name: "rating", type: "Float", missing: 0 },
+          { name: "rating_count", type: "Integer", missing: 0 },
+          { name: "ram_gb", type: "Float", missing: 0 },
+          { name: "storage", type: "Float", missing: 0 },
+          { name: "is_smart", type: "Boolean", missing: 0 },
+          { name: "is_inverter", type: "Boolean", missing: 0 },
+        ];
+
+    const totalRows = summary.totalRecords || products.length || 10;
+
+    return rawCols.map((col) => {
+      const colName = col.name.toLowerCase();
+      let strategy = col.strategy;
+      let technique = col.technique;
+      let category = "standard";
+
+      if (colName === "price") {
+        strategy = strategy || "ML Regression (Random Forest)";
+        technique = technique || "Trained Random Forest Regressor on correlated technical specs and brand pricing distributions with median fallback.";
+        category = "ml";
+      } else if (colName === "rating" || colName === "rating_count") {
+        strategy = strategy || "Numerical Baseline Normalization";
+        technique = technique || "Unobserved customer feedback normalized to 0.0 rating and 0 count to preserve mathematical scale without skewing models.";
+        category = "baseline";
+      } else if (colName === "brand" || colName === "availability") {
+        strategy = strategy || "Categorical Canonical Mapping";
+        technique = technique || "Normalized via site heuristic profiles or mapped to standard categorical tokens (InStock, OutOfStock, Unknown).";
+        category = "canonical";
+      } else if (["ram_gb", "storage", "size", "capacity", "power", "battery"].includes(colName)) {
+        strategy = strategy || "Spec Table Regex Mining";
+        technique = technique || "Extracted from product titles, descriptions, and technical specifications tables; remaining missing rows imputed with 0.0.";
+        category = "spec";
+      } else if (colName.startsWith("is_") || colName.startsWith("has_")) {
+        strategy = strategy || "Boolean Keyword Feature Engineering";
+        technique = technique || "Derived via domain-specific vocabulary matching against titles, specifications, and descriptions.";
+        category = "engineered";
+      } else {
+        strategy = strategy || "Text Sanitization";
+        technique = technique || "HTML tags stripped, whitespace trimmed, and normalized to clean text strings.";
+        category = "standard";
+      }
+
+      const missingCnt = col.missing || 0;
+      const missingPct = Math.round((missingCnt / Math.max(1, totalRows)) * 100);
+
+      return {
+        ...col,
+        strategy,
+        technique,
+        category,
+        missing: missingCnt,
+        missingPercent: missingPct,
+      };
+    });
+  }, [cleaning.columns, summary.totalRecords, products.length]);
+
+  const filteredColumns = useMemo(() => {
+    if (featureFilter === "all") return enrichedColumns;
+    return enrichedColumns.filter((c) => c.category === featureFilter);
+  }, [enrichedColumns, featureFilter]);
 
   const previewList = products.length > 0
     ? products
@@ -243,47 +303,104 @@ export default function DataCleaningPage() {
           </div>
         </SectionCard>
 
-        {/* Column Details */}
+        {/* Feature Imputation & Engineering Visualizer */}
         <SectionCard
-          title="Column Metadata & Feature Types"
-          description="Data types, derived features, and missing status"
+          title="Column Imputation & Feature Engineering Visualizer"
+          description="Detailed breakdown of how missing values are identified, handled, and imputed for each attribute across mined websites"
         >
+          {/* Strategy Filter Tabs */}
+          <div className="flex flex-wrap items-center gap-2 mb-5 pb-3 border-b border-gray-100">
+            {[
+              { id: "all", label: `All Columns (${enrichedColumns.length})` },
+              { id: "ml", label: "ML Imputed" },
+              { id: "spec", label: "Spec Table Mining" },
+              { id: "engineered", label: "Engineered Flags" },
+              { id: "canonical", label: "Categorical Mapping" },
+              { id: "baseline", label: "Baseline Normalization" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFeatureFilter(tab.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  featureFilter === tab.id
+                    ? "bg-slate-900 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
-                  <th className="p-3">Feature Name</th>
-                  <th className="p-3">Data Type</th>
-                  <th className="p-3">Missing Values</th>
-                  <th className="p-3">Status</th>
+                  <th className="p-3">Attribute</th>
+                  <th className="p-3">Type</th>
+                  <th className="p-3 w-48">Pre-Cleaning Status</th>
+                  <th className="p-3">Imputation & Cleaning Strategy</th>
+                  <th className="p-3">Post-Processing</th>
                 </tr>
               </thead>
 
               <tbody>
-                {columns.map((column) => (
-                  <tr key={column.name} className="border-b border-gray-100 hover:bg-slate-50/50">
-                    <td className="p-3 font-semibold text-slate-800">
-                      {column.name}
-                    </td>
-                    <td className="p-3 text-gray-500 font-mono text-xs">
-                      {column.type}
-                    </td>
-                    <td className="p-3 text-gray-700">
-                      {column.missing}
-                    </td>
-                    <td className="p-3">
-                      {column.missing === 0 ? (
-                        <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-xs font-medium border border-emerald-100">
-                          Complete
+                {filteredColumns.map((col) => {
+                  let badgeStyle = "bg-slate-100 text-slate-700 border-slate-200";
+                  if (col.category === "ml") badgeStyle = "bg-purple-100 text-purple-800 border-purple-200";
+                  if (col.category === "spec") badgeStyle = "bg-blue-100 text-blue-800 border-blue-200";
+                  if (col.category === "engineered") badgeStyle = "bg-amber-100 text-amber-800 border-amber-200";
+                  if (col.category === "canonical") badgeStyle = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                  if (col.category === "baseline") badgeStyle = "bg-slate-100 text-slate-700 border-slate-200";
+
+                  return (
+                    <tr key={col.name} className="border-b border-gray-100 hover:bg-slate-50/60 transition">
+                      <td className="p-3 font-semibold text-slate-900 align-top">
+                        <code>{col.name}</code>
+                      </td>
+                      <td className="p-3 text-gray-500 font-mono text-xs align-top">
+                        <span className="px-2 py-0.5 bg-gray-100 rounded text-[11px]">
+                          {col.type}
                         </span>
-                      ) : (
-                        <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full text-xs font-medium border border-amber-100">
-                          Imputed by ML
+                      </td>
+                      <td className="p-3 align-top">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">
+                              {col.missing > 0 ? `${col.missing} missing` : "None missing"}
+                            </span>
+                            <span className="font-semibold text-slate-700">
+                              {col.missingPercent}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className={`h-1.5 rounded-full ${
+                                col.missing > 0 ? "bg-amber-500" : "bg-emerald-500"
+                              }`}
+                              style={{ width: `${Math.max(5, col.missingPercent || 0)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3 align-top max-w-md">
+                        <span className={`inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full border mb-1.5 ${badgeStyle}`}>
+                          {col.strategy}
                         </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          {col.technique}
+                        </p>
+                      </td>
+                      <td className="p-3 align-top">
+                        <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full text-xs font-semibold border border-emerald-200">
+                          <span>✓</span>
+                          <span>100% Usable</span>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -352,7 +469,7 @@ export default function DataCleaningPage() {
 
             {filteredProducts.length === 0 && (
               <p className="text-center text-gray-500 py-8">
-                No products found matching "{search}".
+                No products found matching &quot;{search}&quot;.
               </p>
             )}
           </div>

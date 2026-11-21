@@ -14,6 +14,7 @@ import {
   ScatterChart,
   Scatter,
   ZAxis,
+  Legend,
 } from "recharts";
 
 const colors = {
@@ -246,11 +247,74 @@ export default function PredictionCharts({
     { k: 6, inertia: 60 },
   ];
 
-  const safeClusters = clusters.length > 0 ? clusters : [
-    { rating: 4, price: 15000, cluster: "Cluster 0", name: "Budget Product" },
-    { rating: 12, price: 38000, cluster: "Cluster 1", name: "Mid-Range Device" },
-    { rating: 25, price: 65000, cluster: "Cluster 2", name: "Premium Tier" },
-  ];
+  const CLUSTER_PALETTE = {
+    "Cluster 0": "#2563EB", // Blue
+    "Cluster 1": "#10B981", // Emerald
+    "Cluster 2": "#8B5CF6", // Purple
+    "Cluster 3": "#F59E0B", // Amber
+    "Cluster 4": "#EC4899", // Pink
+  };
+
+  const { clusterGroups, clusterSummary, hasRatingVariance, scatterData } = useMemo(() => {
+    let raw = clusters && clusters.length > 0 ? [...clusters] : [];
+    if (raw.length === 0 && products && products.length > 0) {
+      raw = products.map((p, i) => ({
+        name: p.name || `Product ${i + 1}`,
+        price: Number(p.price || 0),
+        rating: Number(p.rating?.average || p.rating?.count || 0),
+        cluster: p.attributes?.segment || "Cluster 0",
+      }));
+    }
+    if (raw.length === 0) {
+      raw = [
+        { name: "Budget Device A", price: 14500, rating: 0, cluster: "Cluster 0" },
+        { name: "Budget Device B", price: 18200, rating: 0, cluster: "Cluster 0" },
+        { name: "Mid-Range Device A", price: 42000, rating: 0, cluster: "Cluster 1" },
+        { name: "Mid-Range Device B", price: 56000, rating: 0, cluster: "Cluster 1" },
+        { name: "Flagship Device A", price: 115000, rating: 0, cluster: "Cluster 2" },
+        { name: "Flagship Device B", price: 142000, rating: 0, cluster: "Cluster 2" },
+      ];
+    }
+
+    const ratings = raw.map((d) => Number(d.rating || 0));
+    const minRating = Math.min(...ratings);
+    const maxRating = Math.max(...ratings);
+    const hasVariance = maxRating > minRating;
+
+    const groups = {};
+    const summary = {};
+
+    const formatted = raw.map((item, idx) => {
+      const c = item.cluster || "Cluster 0";
+      const pr = Number(item.price || 0);
+      const xVal = hasVariance ? Number(item.rating || 0) : idx + 1;
+
+      if (!groups[c]) groups[c] = [];
+      if (!summary[c]) summary[c] = { count: 0, totalPrice: 0, avgPrice: 0 };
+
+      const pt = {
+        name: item.name || `Product ${idx + 1}`,
+        price: pr,
+        rating: Number(item.rating || 0),
+        x: xVal,
+        cluster: c,
+      };
+
+      groups[c].push(pt);
+      summary[c].count += 1;
+      summary[c].totalPrice += pr;
+      summary[c].avgPrice = summary[c].totalPrice / summary[c].count;
+
+      return pt;
+    });
+
+    return {
+      clusterGroups: groups,
+      clusterSummary: summary,
+      hasRatingVariance: hasVariance,
+      scatterData: formatted,
+    };
+  }, [clusters, products]);
 
   return (
     <section className="w-full space-y-6">
@@ -365,18 +429,44 @@ export default function PredictionCharts({
         {/* K-Means Segmentation */}
         <ChartCard
           title="K-Means Market Segmentation"
-          description="Product cluster groupings projected across price and popularity"
-          badge="K-Means (k=3)"
+          description="Product cluster groupings projected across price and market tiers"
+          badge={`K-Means (${Object.keys(clusterGroups).length || 3} Segments)`}
         >
-          <ResponsiveContainer width="100%" height="100%">
+          {/* Cluster summary badges */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            {Object.entries(clusterSummary).map(([cName, info]) => (
+              <div
+                key={cName}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs bg-slate-50 border-gray-200"
+              >
+                <span
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: CLUSTER_PALETTE[cName] || "#64748B" }}
+                />
+                <span className="font-semibold text-slate-800">{cName}:</span>
+                <span className="text-gray-600">
+                  {info.count} items (Avg: ৳{Math.round(info.avgPrice).toLocaleString()})
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <ResponsiveContainer width="100%" height={280}>
             <ScatterChart margin={{ top: 10, right: 20, left: 10, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
               <XAxis
                 type="number"
-                dataKey="rating"
-                name="Popularity / Rating"
+                dataKey="x"
+                name={hasRatingVariance ? "Popularity / Rating" : "Product Sequence"}
                 tick={{ fill: "#64748B", fontSize: 11 }}
-                label={{ value: "Popularity / Rating Count", position: "insideBottom", offset: -10, fill: "#64748B", fontSize: 11 }}
+                domain={["dataMin - 0.5", "dataMax + 0.5"]}
+                label={{
+                  value: hasRatingVariance ? "Customer Rating Score" : "Mined Product Sequence (#)",
+                  position: "insideBottom",
+                  offset: -10,
+                  fill: "#64748B",
+                  fontSize: 11,
+                }}
               />
               <YAxis
                 type="number"
@@ -393,15 +483,30 @@ export default function PredictionCharts({
                     return (
                       <div className="bg-white p-2.5 border border-gray-200 rounded-lg shadow-sm text-xs">
                         <p className="font-bold text-slate-900">{data.name}</p>
-                        <p className="text-blue-600 font-semibold mt-1">{data.cluster}</p>
-                        <p className="text-gray-600">Price: ৳{Number(data.price).toLocaleString()}</p>
+                        <p
+                          className="font-semibold mt-1"
+                          style={{ color: CLUSTER_PALETTE[data.cluster] || "#2563EB" }}
+                        >
+                          {data.cluster}
+                        </p>
+                        <p className="text-gray-600">
+                          Price: ৳{Number(data.price).toLocaleString()} BDT
+                        </p>
                       </div>
                     );
                   }
                   return null;
                 }}
               />
-              <Scatter name="Products" data={safeClusters} fill={colors.purple} />
+              <Legend verticalAlign="top" height={36} />
+              {Object.entries(clusterGroups).map(([cName, groupPts]) => (
+                <Scatter
+                  key={cName}
+                  name={cName}
+                  data={groupPts}
+                  fill={CLUSTER_PALETTE[cName] || "#64748B"}
+                />
+              ))}
             </ScatterChart>
           </ResponsiveContainer>
         </ChartCard>
