@@ -1,73 +1,7 @@
 import { PREDICTION_CONFIG } from "@/config/predictionConfig";
 
-const mockService = {
-  async predictPrice(product) {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    return {
-      predicted_price: 45000,
-      model: "Random Forest Regressor",
-      mode: "demo",
-    };
-  },
-
-  async classifyProduct(product) {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const description = product.description.toLowerCase();
-
-    let predictedClass = "Not identified";
-
-    if (product.target === "Inverter") {
-      predictedClass = description.includes("inverter")
-        ? "Inverter"
-        : "Non-Inverter";
-    }
-
-    if (product.target === "Smartphone") {
-      predictedClass = description.includes("smart")
-        ? "Smartphone"
-        : "Non-Smartphone";
-    }
-
-    if (product.target === "Wireless") {
-      predictedClass = /wireless|wifi|wi-fi|bluetooth/.test(description)
-        ? "Wireless"
-        : "Non-Wireless";
-    }
-
-    if (product.target === "Smart TV") {
-      predictedClass = description.includes("smart")
-        ? "Smart TV"
-        : "Non-Smart TV";
-    }
-
-    if (product.target === "HD Display") {
-      predictedClass = /4k|uhd|fhd|1080p|hd/.test(description)
-        ? "HD Display"
-        : "Non-HD Display";
-    }
-
-    return {
-      predicted_class: predictedClass,
-      model: "Demo Classification",
-      mode: "demo",
-    };
-  },
-
-  async clusterProduct(product) {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    return {
-      cluster: 0,
-      cluster_name: "Cluster 0",
-      mode: "demo",
-    };
-  },
-};
-
 const apiService = {
-  async request(endpoint, payload) {
+  async post(endpoint, payload) {
     const response = await fetch(
       `${PREDICTION_CONFIG.API_BASE_URL}${endpoint}`,
       {
@@ -80,34 +14,119 @@ const apiService = {
     );
 
     if (!response.ok) {
-      throw new Error("Prediction API request failed");
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || "API request failed");
     }
 
-    return response.json();
+    const res = await response.json();
+    return res.data !== undefined ? res.data : res;
   },
 
+  async get(endpoint, query = {}) {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== null && value !== "") {
+        params.append(key, value);
+      }
+    }
+    const queryString = params.toString() ? `?${params.toString()}` : "";
+    const response = await fetch(
+      `${PREDICTION_CONFIG.API_BASE_URL}${endpoint}${queryString}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`GET request failed: ${response.statusText}`);
+    }
+
+    const res = await response.json();
+    return res.data !== undefined ? res.data : res;
+  },
+
+  async delete(endpoint) {
+    const response = await fetch(
+      `${PREDICTION_CONFIG.API_BASE_URL}${endpoint}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || "Delete request failed");
+    }
+
+    const res = await response.json();
+    return res.data !== undefined ? res.data : res;
+  },
+
+  // Prediction & Classification
   predictPrice(product) {
-    return this.request(PREDICTION_CONFIG.ENDPOINTS.price, product);
+    return this.post(PREDICTION_CONFIG.ENDPOINTS.price, product);
   },
 
   classifyProduct(product) {
-    return this.request(
-      PREDICTION_CONFIG.ENDPOINTS.classification,
-      product
-    );
+    return this.post(PREDICTION_CONFIG.ENDPOINTS.classification, product);
   },
 
   clusterProduct(product) {
-    return this.request(
-      PREDICTION_CONFIG.ENDPOINTS.clustering,
-      product
-    );
+    return this.post(PREDICTION_CONFIG.ENDPOINTS.clustering, product);
+  },
+
+  // Mining Engine APIs
+  startMining(targetUrl, maxProducts = 30, features = null) {
+    return this.post(PREDICTION_CONFIG.ENDPOINTS.mining, { targetUrl, maxProducts, features });
+  },
+
+  getMiningStatus() {
+    return this.get(PREDICTION_CONFIG.ENDPOINTS.status);
+  },
+
+  getAnalytics() {
+    return this.get(PREDICTION_CONFIG.ENDPOINTS.analytics);
+  },
+
+  // Product Catalog APIs
+  getProducts(filters = {}) {
+    return this.get(PREDICTION_CONFIG.ENDPOINTS.products, filters);
+  },
+
+  getProductById(id) {
+    return this.get(`${PREDICTION_CONFIG.ENDPOINTS.products}/${id}`);
+  },
+
+  getProductBySlug(slug) {
+    return this.get(`${PREDICTION_CONFIG.ENDPOINTS.products}/slug/${slug}`);
+  },
+
+  // Site Management APIs
+  getMinedSites() {
+    return this.get(PREDICTION_CONFIG.ENDPOINTS.sites);
+  },
+
+  deleteSiteProducts(domain) {
+    return this.delete(`${PREDICTION_CONFIG.ENDPOINTS.deleteSite}/${encodeURIComponent(domain)}`);
+  },
+
+  clearAllProducts() {
+    return this.delete(`${PREDICTION_CONFIG.ENDPOINTS.deleteSite}/all`);
+  },
+
+  // Classification Features Autocomplete
+  getClassificationFeatures() {
+    return this.get(PREDICTION_CONFIG.ENDPOINTS.features);
   },
 };
 
-const predictionService =
-  PREDICTION_CONFIG.MODE === "mock"
-    ? mockService
-    : apiService;
+const predictionService = apiService;
 
 export default predictionService;
