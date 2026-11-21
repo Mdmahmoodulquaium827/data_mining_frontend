@@ -1,6 +1,21 @@
 import ProductBrowser from "./ProductBrowser";
 import { PREDICTION_CONFIG } from "@/config/predictionConfig";
 
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600&auto=format&fit=crop&q=80";
+
+function resolveProductThumbnail(images) {
+  if (!images || !Array.isArray(images) || images.length === 0) return FALLBACK_IMAGE;
+  for (const img of images) {
+    const u = (typeof img === "string" ? img : img?.url || "").toLowerCase();
+    if (!u) continue;
+    if (u.endsWith(".svg") || u.includes("photos.svg") || u.includes("customer.svg") || u.includes("logo") || u.includes("icon")) {
+      continue;
+    }
+    return typeof img === "string" ? img : img.url;
+  }
+  return typeof images[0] === "string" ? images[0] : images[0]?.url || FALLBACK_IMAGE;
+}
+
 async function getProducts() {
   try {
     const response = await fetch(`${PREDICTION_CONFIG.API_BASE_URL}/api/v1/product`, {
@@ -22,7 +37,7 @@ async function getProducts() {
       title: item.name,
       price: item.price,
       currency: item.currency || "BDT",
-      thumbnail: item.images?.[0]?.url || item.images?.[0] || "",
+      thumbnail: resolveProductThumbnail(item.images),
       images: item.images || [],
       brand: typeof item.brand === "string" ? item.brand : item.brand?.name || "Unknown",
       rating: item.rating?.average || 0,

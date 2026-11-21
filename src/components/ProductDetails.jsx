@@ -36,9 +36,17 @@ export default async function ProductDetails({ id }) {
   const sourceName = product.sources?.[0]?.name || product.attributes?.source_domain || "Mined Website";
   const sourceUrl = product.sources?.[0]?.url || "";
   const segment = product.attributes?.segment || "Cluster 0";
-  const images = product.images && product.images.length > 0
+  const rawImages = product.images && product.images.length > 0
     ? product.images.map((img) => (typeof img === "string" ? img : img.url)).filter(Boolean)
-    : [product.thumbnail || "https://placehold.co/600x600/f3f4f6/94a3b8?text=Product"];
+    : [product.thumbnail || "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600&auto=format&fit=crop&q=80"];
+
+  const images = rawImages.filter((url) => {
+    const u = url.toLowerCase();
+    return !u.endsWith(".svg") && !u.includes("photos.svg") && !u.includes("customer.svg") && !u.includes("logo");
+  });
+  if (images.length === 0) {
+    images.push("https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600&auto=format&fit=crop&q=80");
+  }
 
   const specs = product.specifications || {};
   const attrs = product.attributes || {};
