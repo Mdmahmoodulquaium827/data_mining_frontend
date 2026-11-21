@@ -14,8 +14,8 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" className="bg-white">
+      <body className="bg-white text-slate-900 min-h-screen">
         <StoreProvider>
           <Navbar />
 
