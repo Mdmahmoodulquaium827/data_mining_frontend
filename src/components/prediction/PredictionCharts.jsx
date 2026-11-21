@@ -432,13 +432,13 @@ export default function PredictionCharts({
         <ChartCard
           title="Elbow Method (Optimal K)"
           description="Inertia minimization curve used to choose the optimal cluster count"
-          badge={`★ Best: K = ${optimalK}`}
+          badge={`Optimal: K = ${optimalK}`}
         >
           {/* Best K Callout Banner */}
           <div className="mb-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                ★
+              <span className="w-5 h-5 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                K*
               </span>
               <div>
                 <span className="font-bold text-emerald-950">
