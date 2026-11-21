@@ -61,8 +61,9 @@ export default async function ProductDetails({ id }) {
   );
 
   return (
-    <main className="min-h-screen bg-white px-5 md:px-12 py-8 max-w-7xl mx-auto">
-      {/* Breadcrumb */}
+    <main className="min-h-screen bg-white w-full">
+      <div className="max-w-7xl mx-auto px-5 md:px-12 py-8">
+        {/* Breadcrumb */}
       <div className="mb-6 text-sm text-gray-500">
         <Link href="/" className="hover:text-black">Home</Link>
         {" / "}
@@ -217,6 +218,7 @@ export default async function ProductDetails({ id }) {
           </div>
         </section>
       )}
+      </div>
     </main>
   );
 }
