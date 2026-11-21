@@ -68,22 +68,54 @@ export default function PredictionCharts({
   // Compute distribution dynamically based on selected regression target
   const currentDistribution = useMemo(() => {
     if (selectedTarget === "price") {
+      const prices = (products || [])
+        .map((p) => Number(p.price || p.attributes?.imputed_price || 0))
+        .filter((p) => !isNaN(p) && p > 0);
+
+      if (prices.length > 0) {
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+
+        if (minPrice === maxPrice) {
+          return [
+            {
+              range: `৳${minPrice.toLocaleString()}`,
+              count: prices.length,
+            },
+          ];
+        }
+
+        const formatShort = (val) => {
+          if (val >= 1000000) return `৳${(val / 1000000).toFixed(1)}M`;
+          if (val >= 1000) return `৳${Math.round(val / 1000)}k`;
+          return `৳${Math.round(val)}`;
+        };
+
+        const numBins = Math.min(5, Math.max(3, prices.length));
+        const step = (maxPrice - minPrice) / numBins;
+        const bins = [];
+
+        for (let i = 0; i < numBins; i++) {
+          const start = minPrice + i * step;
+          const end = minPrice + (i + 1) * step;
+          const isLast = i === numBins - 1;
+
+          const count = prices.filter((p) =>
+            isLast ? p >= start && p <= end : p >= start && p < end
+          ).length;
+
+          bins.push({
+            range: `${formatShort(start)} - ${formatShort(end)}`,
+            count,
+          });
+        }
+        return bins;
+      }
+
       if (priceDistribution && priceDistribution.length > 0) {
         return priceDistribution;
       }
-      const prices = (products || [])
-        .map((p) => Number(p.price))
-        .filter((p) => !isNaN(p) && p > 0);
-      if (prices.length > 0) {
-        return [
-          { range: "0-15k", count: prices.filter((p) => p < 15000).length },
-          { range: "15-30k", count: prices.filter((p) => p >= 15000 && p < 30000).length },
-          { range: "30-50k", count: prices.filter((p) => p >= 30000 && p < 50000).length },
-          { range: "50-75k", count: prices.filter((p) => p >= 50000 && p < 75000).length },
-          { range: "75-100k", count: prices.filter((p) => p >= 75000 && p < 100000).length },
-          { range: "100k+", count: prices.filter((p) => p >= 100000).length },
-        ];
-      }
+
       return [
         { range: "0-15k", count: 0 },
         { range: "15-30k", count: 0 },
@@ -196,12 +228,20 @@ export default function PredictionCharts({
   // Dynamic Chart Header Info
   const targetLabel = useMemo(() => {
     switch (selectedTarget) {
-      case "price":
+      case "price": {
+        const prices = (products || [])
+          .map((p) => Number(p.price || p.attributes?.imputed_price || 0))
+          .filter((p) => p > 0);
+        const minP = prices.length > 0 ? Math.min(...prices) : null;
+        const maxP = prices.length > 0 ? Math.max(...prices) : null;
         return {
           title: "Price Distribution Histogram",
-          desc: "Distribution of mined products across price ranges (BDT)",
+          desc: minP !== null
+            ? `Dynamic price ranges across mined items (৳${Math.round(minP).toLocaleString()} - ৳${Math.round(maxP).toLocaleString()})`
+            : "Distribution of mined products across price ranges (BDT)",
           badge: "BDT (Price)",
         };
+      }
       case "ram_gb":
         return {
           title: "RAM Capacity Distribution",
@@ -233,7 +273,7 @@ export default function PredictionCharts({
           badge: selectedTarget.replace(/_/g, " ").toUpperCase(),
         };
     }
-  }, [selectedTarget]);
+  }, [selectedTarget, products]);
 
   const safeConfusion = confusionMatrix.length > 0 ? confusionMatrix : [
     { actual: "Positive", real: 24, fake: 2 },
