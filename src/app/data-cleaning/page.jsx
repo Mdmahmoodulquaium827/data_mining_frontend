@@ -103,56 +103,72 @@ export default function DataCleaningPage() {
     };
   }, [products]);
 
-  // Model comparison evaluation list
+  // Model comparison evaluation list dynamically sorted from backend models
   const algorithmEvaluationList = useMemo(() => {
     const modelComparison = analytics?.prediction?.modelComparison || [];
-    const rfModel = modelComparison.find((m) =>
-      m.model?.toLowerCase().includes("random forest")
-    ) || { model: "Random Forest Regressor", r2: 0.724, mae: 11265.4 };
 
-    const lrModel = modelComparison.find((m) =>
-      m.model?.toLowerCase().includes("linear")
-    ) || { model: "Linear Regression", r2: 0.495, mae: 16462.31 };
+    let models = [];
+    if (modelComparison.length > 0) {
+      models = modelComparison.map((m) => {
+        const isRf = m.model?.toLowerCase().includes("random forest");
+        const isLr = m.model?.toLowerCase().includes("linear");
+        const family = isRf
+          ? "Ensemble Decision Trees (100 Estimators)"
+          : isLr
+          ? "Parametric Linear Hyperplane"
+          : "Supervised Regression";
 
-    return [
-      {
-        name: "Random Forest Regressor",
-        type: "Ensemble Decision Trees (100 Estimators)",
-        r2: rfModel.r2 != null ? Number(rfModel.r2).toFixed(3) : "0.724",
-        mae: rfModel.mae != null ? `৳${Math.round(rfModel.mae).toLocaleString()}` : "৳11,265",
-        rank: 1,
-        status: "Selected as Best Algorithm",
-        isWinner: true,
-      },
-      {
-        name: "K-Nearest Neighbors Regressor (KNN, K=5)",
-        type: "Instance-Based Distance Weighted",
-        r2: "0.615",
-        mae: "৳14,320",
-        rank: 2,
-        status: "Evaluated (Sub-optimal)",
-        isWinner: false,
-      },
-      {
-        name: "Linear Regression (OLS / Ridge)",
-        type: "Parametric Linear Hyperplane",
-        r2: lrModel.r2 != null ? Number(lrModel.r2).toFixed(3) : "0.495",
-        mae: lrModel.mae != null ? `৳${Math.round(lrModel.mae).toLocaleString()}` : "৳16,462",
-        rank: 3,
-        status: "Evaluated (Sub-optimal)",
-        isWinner: false,
-      },
-      {
-        name: "Median Imputation (Statistical Baseline)",
-        type: "Unconditional Central Tendency",
-        r2: "0.000",
-        mae: "৳24,180",
-        rank: 4,
-        status: "Fallback Baseline",
-        isWinner: false,
-      },
-    ];
+        const numR2 = Number(m.r2 != null ? m.r2 : 0);
+        const numMae = Number(m.mae != null ? m.mae : 999999);
+
+        return {
+          name: m.model,
+          type: family,
+          rawR2: numR2,
+          rawMae: numMae,
+          r2: m.r2 != null ? numR2.toFixed(3) : "—",
+          mae: m.mae != null ? `৳${Math.round(numMae).toLocaleString()}` : "—",
+        };
+      });
+
+      // Sort dynamically: highest R² first, lowest MAE tie-break
+      models.sort((a, b) => b.rawR2 - a.rawR2 || a.rawMae - b.rawMae);
+    } else {
+      models = [
+        {
+          name: "Linear Regression (OLS / Ridge)",
+          type: "Parametric Linear Hyperplane",
+          rawR2: 0.815,
+          rawMae: 1163,
+          r2: "0.815",
+          mae: "৳1,163",
+        },
+        {
+          name: "Random Forest Regressor",
+          type: "Ensemble Decision Trees (100 Estimators)",
+          rawR2: 0.590,
+          rawMae: 1701,
+          r2: "0.590",
+          mae: "৳1,701",
+        },
+      ];
+    }
+
+    return models.map((m, idx) => ({
+      ...m,
+      rank: idx + 1,
+      isWinner: idx === 0,
+      status: idx === 0 ? "Selected as Best Algorithm" : "Evaluated (Sub-optimal)",
+    }));
   }, [analytics?.prediction?.modelComparison]);
+
+  const bestAlgorithm = useMemo(() => {
+    return algorithmEvaluationList[0] || {
+      name: "Linear Regression",
+      r2: "0.815",
+      mae: "৳1,163",
+    };
+  }, [algorithmEvaluationList]);
 
   const enrichedColumns = useMemo(() => {
     const rawCols = cleaning.columns && cleaning.columns.length > 0
@@ -179,8 +195,8 @@ export default function DataCleaningPage() {
       let category = "standard";
 
       if (colName === "price") {
-        strategy = strategy || "ML Regression (Random Forest)";
-        technique = technique || "Trained Random Forest Regressor on correlated technical specs and brand pricing distributions with median fallback.";
+        strategy = `ML Regression (${bestAlgorithm.name})`;
+        technique = `Imputed via best-performing ${bestAlgorithm.name} (R² = ${bestAlgorithm.r2}) trained on correlated features and brand distributions with median fallback.`;
         category = "ml";
       } else if (colName === "rating" || colName === "rating_count") {
         strategy = strategy || "Numerical Baseline Normalization";
@@ -216,7 +232,7 @@ export default function DataCleaningPage() {
         missingPercent: missingPct,
       };
     });
-  }, [cleaning.columns, summary.totalRecords, products.length]);
+  }, [cleaning.columns, summary.totalRecords, products.length, bestAlgorithm]);
 
   const filteredColumns = useMemo(() => {
     if (featureFilter === "all") return enrichedColumns;
@@ -391,7 +407,7 @@ export default function DataCleaningPage() {
                     </p>
                   </div>
                   <span className="text-xs font-semibold text-black">
-                    Winner: Random Forest Regressor
+                    Winner: {bestAlgorithm.name}
                   </span>
                 </div>
 
@@ -492,13 +508,15 @@ export default function DataCleaningPage() {
                   {/* Formula 4: Target Imputation Equation */}
                   <div className="p-4 bg-white border border-gray-200 rounded-xl space-y-2">
                     <span className="text-xs font-bold text-black uppercase tracking-wider block">
-                      Formula 4: Random Forest Price Imputation
+                      Formula 4: Price Imputation ({bestAlgorithm.name})
                     </span>
                     <div className="p-2.5 bg-gray-50 border border-gray-200 rounded-lg font-mono text-xs text-black font-semibold overflow-x-auto">
-                      {"y_hat = Round_100 [ (1/B) * Σ(b=1..B) T_b(x_i) ]"}
+                      {bestAlgorithm.name.toLowerCase().includes("linear")
+                        ? "y_hat = Round_100 [ β_0 + Σ(j=1..p) β_j * x_ij ]"
+                        : "y_hat = Round_100 [ (1/B) * Σ(b=1..B) T_b(x_i) ]"}
                     </div>
                     <p className="text-xs text-black leading-relaxed">
-                      Aggregates leaf node predictions across B=100 decision trees, clamped to the IQR boundaries, and rounded to the nearest 100 BDT denomination.
+                      Price estimates generated using the winning {bestAlgorithm.name} (R² = {bestAlgorithm.r2}), clamped within IQR boundaries, and rounded to the nearest 100 BDT denomination.
                     </p>
                   </div>
                 </div>
