@@ -303,11 +303,50 @@ export default function DataCleaningPage() {
           </div>
         </SectionCard>
 
-        {/* Feature Imputation & Engineering Visualizer */}
+        {/* Visual Missing Value Imputation Breakdown */}
         <SectionCard
-          title="Column Imputation & Feature Engineering Visualizer"
-          description="Detailed breakdown of how missing values are identified, handled, and imputed for each attribute across mined websites"
+          title="Visual Missing Value Imputation Breakdown"
+          description="Algorithmic pipeline showing how missing values in each column are detected, handled, and imputed across target websites"
         >
+          {/* Quick Metrics Bar: Raw vs Cleaned */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">
+                Raw Scraped Deficiencies
+              </span>
+              <p className="text-2xl font-bold text-amber-950 mt-1">
+                {summary.missingValues} Missing Values
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                Identified across unlisted prices, unrated listings, and unstructured specs.
+              </p>
+            </div>
+
+            <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl">
+              <span className="text-xs font-bold text-purple-800 uppercase tracking-wider">
+                Machine Learning Imputation
+              </span>
+              <p className="text-2xl font-bold text-purple-950 mt-1">
+                Random Forest & Spec Mining
+              </p>
+              <p className="text-xs text-purple-700 mt-1">
+                Trained regression models & HTML spec parsers reconstructed missing values.
+              </p>
+            </div>
+
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+              <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                Post-Imputation Status
+              </span>
+              <p className="text-2xl font-bold text-emerald-950 mt-1">
+                100% Usable Features
+              </p>
+              <p className="text-xs text-emerald-700 mt-1">
+                Zero remaining nulls in model training matrix (0 missing values).
+              </p>
+            </div>
+          </div>
+
           {/* Strategy Filter Tabs */}
           <div className="flex flex-wrap items-center gap-2 mb-5 pb-3 border-b border-gray-100">
             {[

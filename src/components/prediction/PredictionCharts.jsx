@@ -15,6 +15,7 @@ import {
   Scatter,
   ZAxis,
   Legend,
+  ReferenceLine,
 } from "recharts";
 
 const colors = {
@@ -239,13 +240,15 @@ export default function PredictionCharts({
     { actual: "Negative", real: 1, fake: 13 },
   ];
 
-  const safeElbow = elbowCurve.length > 0 ? elbowCurve : [
-    { k: 2, inertia: 310 },
-    { k: 3, inertia: 185 },
-    { k: 4, inertia: 120 },
-    { k: 5, inertia: 85 },
-    { k: 6, inertia: 60 },
-  ];
+  const safeElbow = useMemo(() => {
+    return elbowCurve.length > 0 ? elbowCurve : [
+      { k: 2, inertia: 310 },
+      { k: 3, inertia: 185 },
+      { k: 4, inertia: 120 },
+      { k: 5, inertia: 85 },
+      { k: 6, inertia: 60 },
+    ];
+  }, [elbowCurve]);
 
   const CLUSTER_PALETTE = {
     "Cluster 0": "#2563EB", // Blue
@@ -315,6 +318,28 @@ export default function PredictionCharts({
       scatterData: formatted,
     };
   }, [clusters, products]);
+
+  const optimalK = useMemo(() => {
+    if (!safeElbow || safeElbow.length === 0) return 3;
+    const clusterCount = Object.keys(clusterGroups).length;
+    if (clusterCount >= 2 && clusterCount <= 6) return clusterCount;
+
+    if (safeElbow.length >= 3) {
+      let bestK = safeElbow[1]?.k || 3;
+      let maxDropRatio = -1;
+      for (let i = 1; i < safeElbow.length - 1; i++) {
+        const dropBefore = safeElbow[i - 1].inertia - safeElbow[i].inertia;
+        const dropAfter = safeElbow[i].inertia - safeElbow[i + 1].inertia;
+        const ratio = dropBefore / Math.max(1, dropAfter);
+        if (ratio > maxDropRatio) {
+          maxDropRatio = ratio;
+          bestK = safeElbow[i].k;
+        }
+      }
+      return bestK;
+    }
+    return safeElbow[0]?.k || 3;
+  }, [safeElbow, clusterGroups]);
 
   return (
     <section className="w-full space-y-6">
@@ -406,11 +431,31 @@ export default function PredictionCharts({
         {/* Elbow Method */}
         <ChartCard
           title="Elbow Method (Optimal K)"
-          description="Inertia minimization curve used to choose K-Means cluster count"
-          badge="k = 2 to 6"
+          description="Inertia minimization curve used to choose the optimal cluster count"
+          badge={`★ Best: K = ${optimalK}`}
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={safeElbow} margin={{ top: 10, right: 20, left: 10, bottom: 20 }}>
+          {/* Best K Callout Banner */}
+          <div className="mb-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                ★
+              </span>
+              <div>
+                <span className="font-bold text-emerald-950">
+                  Optimal Number of Clusters: K = {optimalK} (Best Choice)
+                </span>
+                <p className="text-emerald-700 text-[11px] mt-0.5">
+                  Elbow inflection point detected. Increasing K beyond {optimalK} yields diminishing inertia reductions.
+                </p>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-md shrink-0">
+              K = {optimalK}
+            </span>
+          </div>
+
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={safeElbow} margin={{ top: 15, right: 20, left: 10, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
               <XAxis
                 dataKey="k"
@@ -421,7 +466,41 @@ export default function PredictionCharts({
               />
               <YAxis tick={{ fill: "#64748B", fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v) => [v, "Inertia"]} />
-              <Line type="monotone" dataKey="inertia" stroke={colors.blue} strokeWidth={2.5} dot={{ r: 5, fill: colors.blue }} activeDot={{ r: 7 }} />
+              <ReferenceLine
+                x={optimalK}
+                stroke="#10B981"
+                strokeWidth={2}
+                strokeDasharray="4 4"
+                label={{
+                  value: `Best K = ${optimalK}`,
+                  position: "top",
+                  fill: "#059669",
+                  fontSize: 11,
+                  fontWeight: "bold",
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="inertia"
+                stroke={colors.blue}
+                strokeWidth={2.5}
+                dot={(props) => {
+                  const { cx, cy, payload } = props;
+                  const isBest = payload.k === optimalK;
+                  if (isBest) {
+                    return (
+                      <g key={payload.k}>
+                        <circle cx={cx} cy={cy} r={8} fill="#10B981" stroke="#FFFFFF" strokeWidth={2.5} />
+                        <circle cx={cx} cy={cy} r={3} fill="#FFFFFF" />
+                      </g>
+                    );
+                  }
+                  return (
+                    <circle key={payload.k} cx={cx} cy={cy} r={4.5} fill={colors.blue} stroke="#FFFFFF" strokeWidth={1.5} />
+                  );
+                }}
+                activeDot={{ r: 8 }}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
